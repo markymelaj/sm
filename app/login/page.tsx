@@ -10,9 +10,7 @@ export default function LoginPage() {
       <div className="card w-full max-w-md p-7 sm:p-9">
         <p className="text-sm font-bold uppercase tracking-[0.24em] text-sky-300">Portal Santa Magdalena</p>
         <h1 className="mt-3 text-3xl font-bold text-white">Acceso al sistema</h1>
-        <p className="muted mt-3 text-sm">
-          Clientes ingresan con su RUT. El equipo interno puede usar su usuario asignado.
-        </p>
+        <p className="muted mt-3 text-sm">Ingresa tu RUT para revisar tu información y pagos.</p>
         <div className="mt-6">
           <Suspense fallback={<div className="muted text-sm">Cargando acceso...</div>}>
             <LoginForm />

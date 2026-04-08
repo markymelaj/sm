@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 
 import type { Database } from '@/lib/types';
 
@@ -13,7 +13,6 @@ export function EditFichaForm({ profileId, ficha }: { profileId: string; ficha: 
     titular_parcela: ficha?.titular_parcela ?? '',
     rut_titular: ficha?.rut_titular ?? '',
     numero_rol_parcela: ficha?.numero_rol_parcela ?? '',
-    numero_parcela: ficha?.numero_parcela ?? '',
     parcela: ficha?.parcela ?? '',
     telefono: ficha?.telefono ?? '',
     email_contacto: ficha?.email_contacto ?? '',
@@ -24,7 +23,7 @@ export function EditFichaForm({ profileId, ficha }: { profileId: string; ficha: 
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
-  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
     setMessage('');
@@ -60,11 +59,10 @@ export function EditFichaForm({ profileId, ficha }: { profileId: string; ficha: 
         <div className="space-y-2"><label className="label">Titular parcela</label><input className="input" value={form.titular_parcela} onChange={(e) => patch('titular_parcela', e.target.value)} /></div>
         <div className="space-y-2"><label className="label">RUT titular</label><input className="input" value={form.rut_titular} onChange={(e) => patch('rut_titular', e.target.value)} /></div>
         <div className="space-y-2"><label className="label">Número de rol</label><input className="input" value={form.numero_rol_parcela} onChange={(e) => patch('numero_rol_parcela', e.target.value)} /></div>
-        <div className="space-y-2"><label className="label">Número de parcela</label><input className="input" value={form.numero_parcela} onChange={(e) => patch('numero_parcela', e.target.value)} /></div>
         <div className="space-y-2"><label className="label">Parcela</label><input className="input" value={form.parcela} onChange={(e) => patch('parcela', e.target.value)} /></div>
         <div className="space-y-2"><label className="label">Teléfono</label><input className="input" value={form.telefono} onChange={(e) => patch('telefono', e.target.value)} /></div>
         <div className="space-y-2"><label className="label">Email contacto</label><input className="input" value={form.email_contacto} onChange={(e) => patch('email_contacto', e.target.value)} /></div>
-        <div className="space-y-2"><label className="label">Dirección / referencia</label><input className="input" value={form.direccion_referencia} onChange={(e) => patch('direccion_referencia', e.target.value)} /></div>
+        <div className="space-y-2 md:col-span-2"><label className="label">Dirección / referencia</label><input className="input" value={form.direccion_referencia} onChange={(e) => patch('direccion_referencia', e.target.value)} /></div>
         <div className="space-y-2 md:col-span-2"><label className="label">Observaciones visibles</label><textarea className="textarea" value={form.observaciones} onChange={(e) => patch('observaciones', e.target.value)} /></div>
       </div>
       {message ? <p className="text-sm text-emerald-300">{message}</p> : null}

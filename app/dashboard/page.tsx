@@ -1,10 +1,10 @@
 import { AddSolicitudMessageForm } from '@/components/dashboard/add-solicitud-message-form';
 import { CreateSolicitudForm } from '@/components/dashboard/create-solicitud-form';
-import { SimulatePaymentButton } from '@/components/dashboard/simulate-payment-button';
 import { StatusBadge } from '@/components/status-badge';
 import { UploadComprobanteForm } from '@/components/dashboard/upload-comprobante-form';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { requireRole } from '@/lib/auth';
+import { CARD_PAYMENT_MESSAGE, getNextQuota, getPaidTotal, getPendingBalance, PROJECT_TOTAL, TRANSFER_DETAILS } from '@/lib/payments';
 import { formatRut } from '@/lib/rut';
 
 export default async function ClientDashboardPage() {
@@ -14,7 +14,7 @@ export default async function ClientDashboardPage() {
     supabase.from('fichas_cliente').select('*').eq('perfil_id', profile.id).maybeSingle(),
     supabase.from('seguimiento_parcela').select('*').eq('perfil_id', profile.id).maybeSingle(),
     supabase.from('cuotas').select('*').eq('perfil_id', profile.id).order('fecha_vencimiento', { ascending: true }),
-    supabase.from('avances_obra').select('*').order('fecha', { ascending: false }).limit(8),
+    supabase.from('avances_obra').select('*').order('fecha', { ascending: false }).limit(10),
     supabase.from('solicitudes').select('*').eq('perfil_id', profile.id).order('created_at', { ascending: false }),
     supabase.from('ficha_estado_tipos').select('*').eq('is_active', true).order('sort_order', { ascending: true })
   ]);
@@ -35,7 +35,11 @@ export default async function ClientDashboardPage() {
     ? ((await supabase.from('solicitud_mensajes').select('*').in('solicitud_id', solicitudIds).order('created_at', { ascending: true })).data ?? [])
     : [];
 
-  const nextQuota = cuotas.find((item) => item.estado !== 'pagado') ?? null;
+  const nextQuota = getNextQuota(cuotas as any);
+  const totalPagado = getPaidTotal(cuotas as any);
+  const saldoPendiente = getPendingBalance(cuotas as any);
+  const cuotasPendientes = cuotas.filter((item) => item.estado !== 'pagado');
+  const cuotasPagadas = cuotas.filter((item) => item.estado === 'pagado');
 
   const comprobanteUrls = Object.fromEntries(
     await Promise.all(
@@ -50,10 +54,21 @@ export default async function ClientDashboardPage() {
 
   return (
     <div className="grid gap-6">
-      <section className="grid gap-4 md:grid-cols-3">
-        <div className="card p-5"><p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Próxima cuota</p><h2 className="mt-2 text-2xl font-bold text-white">{nextQuota ? formatCurrency(nextQuota.monto_total) : 'Sin deuda próxima'}</h2><p className="muted mt-2 text-sm">{nextQuota ? `Vence el ${formatDate(nextQuota.fecha_vencimiento)}` : 'No hay cuotas pendientes.'}</p></div>
-        <div className="card p-5"><p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Mi acceso</p><h2 className="mt-2 text-2xl font-bold text-white">{profile.nombre_completo}</h2><p className="muted mt-2 break-words text-sm">Identificador: {profile.rut ? formatRut(profile.rut) : profile.identificador.toLowerCase()}</p></div>
-        <div className="card p-5"><p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Seguimiento parcela</p><h2 className="mt-2 text-2xl font-bold text-white">{seguimiento?.avance_particular ? 'Actualizado' : 'Sin detalle'}</h2><p className="muted mt-2 text-sm">El texto de seguimiento particular lo actualiza la administración.</p></div>
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="card p-5"><p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Valor total del proyecto</p><h2 className="mt-2 text-2xl font-bold text-white">{formatCurrency(PROJECT_TOTAL)}</h2></div>
+        <div className="card p-5"><p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Total pagado</p><h2 className="mt-2 text-2xl font-bold text-white">{formatCurrency(totalPagado)}</h2></div>
+        <div className="card p-5"><p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Saldo pendiente</p><h2 className="mt-2 text-2xl font-bold text-white">{formatCurrency(saldoPendiente)}</h2></div>
+        <div className="card p-5">
+          <p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Próxima cuota</p>
+          <h2 className="mt-2 text-2xl font-bold text-white">{nextQuota ? formatCurrency(nextQuota.monto_total) : 'Sin deuda próxima'}</h2>
+          <p className="muted mt-2 text-sm">{nextQuota ? `${nextQuota.concepto} · Fecha de pago ${formatDate(nextQuota.fecha_vencimiento)}` : 'No hay cuotas pendientes.'}</p>
+          {nextQuota ? (
+            <div className="mt-3 flex flex-wrap gap-2 items-center">
+              <StatusBadge label={nextQuota.estado} />
+              {nextQuota.estado === 'en_revision' ? <span className="text-sm font-semibold text-sky-300">EN REVISIÓN</span> : null}
+            </div>
+          ) : null}
+        </div>
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
@@ -61,12 +76,12 @@ export default async function ClientDashboardPage() {
           <div className="card p-5">
             <p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Mi ficha</p>
             <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-              <div><p className="muted">Titular</p><p className="break-words text-white">{ficha?.titular_parcela || '—'}</p></div>
-              <div><p className="muted">RUT titular</p><p className="break-words text-white">{ficha?.rut_titular ? formatRut(ficha.rut_titular) : '—'}</p></div>
-              <div><p className="muted">Rol parcela</p><p className="break-words text-white">{ficha?.numero_rol_parcela || '—'}</p></div>
-              <div><p className="muted">Número parcela</p><p className="break-words text-white">{ficha?.numero_parcela || '—'}</p></div>
+              <div><p className="muted">Titular</p><p className="break-words text-white">{ficha?.titular_parcela || profile.nombre_completo || '—'}</p></div>
+              <div><p className="muted">RUT titular</p><p className="break-words text-white">{ficha?.rut_titular ? formatRut(ficha.rut_titular) : profile.rut ? formatRut(profile.rut) : '—'}</p></div>
+              <div><p className="muted">Número de rol</p><p className="break-words text-white">{ficha?.numero_rol_parcela || '—'}</p></div>
               <div><p className="muted">Parcela</p><p className="break-words text-white">{ficha?.parcela || profile.parcela || '—'}</p></div>
               <div><p className="muted">Teléfono</p><p className="break-words text-white">{ficha?.telefono || '—'}</p></div>
+              <div><p className="muted">Email</p><p className="break-words text-white">{ficha?.email_contacto || profile.email || '—'}</p></div>
             </div>
             <div className="mt-4 rounded-2xl border border-white/8 bg-slate-900/50 p-4">
               <p className="muted text-xs uppercase tracking-[0.2em]">Seguimiento particular</p>
@@ -92,34 +107,80 @@ export default async function ClientDashboardPage() {
           </div>
 
           <div className="card p-5">
-            <p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Mis pagos</p>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Próximas cuotas</p>
+                <p className="muted mt-2 text-sm">Sube tu comprobante cuando corresponda. Pagar online: Próximamente.</p>
+              </div>
+            </div>
             <div className="mt-4 grid gap-4">
-              {cuotas.map((cuota) => (
+              {cuotasPendientes.map((cuota) => (
                 <article className="rounded-2xl border border-white/8 bg-slate-900/45 p-4" key={cuota.id}>
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
                       <h3 className="break-words text-lg font-bold text-white">{cuota.concepto}</h3>
-                      <p className="muted text-sm">Vence el {formatDate(cuota.fecha_vencimiento)}</p>
+                      <p className="muted text-sm">Fecha de pago {formatDate(cuota.fecha_vencimiento)}</p>
                     </div>
-                    <div className="flex flex-wrap gap-2"><StatusBadge label={cuota.estado} /></div>
+                    <div className="flex flex-wrap gap-2">
+                      <StatusBadge label={cuota.estado} />
+                      {cuota.estado === 'en_revision' ? <span className="text-sm font-semibold text-sky-300">EN REVISIÓN</span> : null}
+                    </div>
                   </div>
                   <p className="mt-3 text-xl font-bold text-white">{formatCurrency(cuota.monto_total)}</p>
                   {cuota.motivo_rechazo ? <p className="mt-3 rounded-2xl border border-rose-300/20 bg-rose-400/10 p-3 text-sm text-rose-200">Motivo de rechazo: {cuota.motivo_rechazo}</p> : null}
                   {comprobanteUrls[cuota.id] ? <a className="mt-3 inline-flex text-sm font-semibold text-sky-300 underline" href={comprobanteUrls[cuota.id]!} rel="noreferrer" target="_blank">Ver comprobante cargado</a> : null}
                   {(cuota.estado === 'pendiente' || cuota.estado === 'rechazado') ? (
-                    <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                    <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
                       <UploadComprobanteForm cuotaId={cuota.id} />
-                      <SimulatePaymentButton cuotaId={cuota.id} />
+                      <div className="rounded-2xl border border-white/8 bg-slate-950/40 p-4 text-sm text-slate-200">
+                        <p className="font-semibold text-white">Pagar online</p>
+                        <p className="muted mt-2">Próximamente</p>
+                      </div>
                     </div>
                   ) : null}
                 </article>
               ))}
-              {cuotas.length === 0 ? <p className="muted text-sm">Aún no hay cuotas cargadas.</p> : null}
+              {cuotasPendientes.length === 0 ? <p className="muted text-sm">No hay cuotas pendientes.</p> : null}
+            </div>
+          </div>
+
+          <div className="card p-5">
+            <p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Pagos registrados</p>
+            <div className="mt-4 grid gap-4">
+              {cuotasPagadas.map((cuota) => (
+                <article className="rounded-2xl border border-white/8 bg-slate-900/45 p-4" key={cuota.id}>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <h3 className="break-words text-lg font-bold text-white">{cuota.concepto}</h3>
+                      <p className="muted text-sm">Fecha de pago {formatDate(cuota.fecha_vencimiento)}</p>
+                    </div>
+                    <StatusBadge label={cuota.estado} />
+                  </div>
+                  <p className="mt-3 text-xl font-bold text-white">{formatCurrency(cuota.monto_total)}</p>
+                  {comprobanteUrls[cuota.id] ? <a className="mt-3 inline-flex text-sm font-semibold text-sky-300 underline" href={comprobanteUrls[cuota.id]!} rel="noreferrer" target="_blank">Ver comprobante cargado</a> : null}
+                </article>
+              ))}
+              {cuotasPagadas.length === 0 ? <p className="muted text-sm">Todavía no hay pagos registrados.</p> : null}
             </div>
           </div>
         </div>
 
         <div className="grid gap-6">
+          <div className="card p-5">
+            <p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Datos de pago</p>
+            <div className="mt-4 rounded-2xl border border-white/8 bg-slate-900/45 p-4 text-sm text-slate-200">
+              <p className="font-semibold text-white">Transferencia</p>
+              <div className="mt-3 grid gap-1">
+                {TRANSFER_DETAILS.map((line) => <p key={line}>{line}</p>)}
+              </div>
+            </div>
+            <div className="mt-4 rounded-2xl border border-white/8 bg-slate-900/45 p-4 text-sm text-slate-200">
+              <p className="font-semibold text-white">Tarjeta</p>
+              <p className="mt-2">{CARD_PAYMENT_MESSAGE}</p>
+              <p className="mt-3 font-semibold text-sky-300">Pagar online: Próximamente</p>
+            </div>
+          </div>
+
           <div className="card p-5">
             <p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Avances generales</p>
             <div className="mt-4 grid gap-4">

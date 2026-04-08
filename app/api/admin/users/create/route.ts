@@ -13,17 +13,24 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const identificador = normalizeIdentifier(body.identificador || body.rut || '');
-    const nombre = String(body.nombre_completo || '').trim();
     const rol = body.rol === 'auditor' ? 'auditor' : 'cliente';
+    const identificador = normalizeIdentifier(body.identificador || body.rut || '');
     const parcela = String(body.parcela || '').trim() || null;
+    const numeroRolParcela = String(body.numero_rol_parcela || '').trim() || null;
     const email = String(body.email || '').trim() || null;
+    const nombre =
+      String(body.nombre_completo || '').trim() ||
+      (rol === 'cliente' ? `Cliente ${identificador}` : `Usuario ${identificador}`);
 
-    if (!identificador || !nombre) {
-      return NextResponse.json({ error: 'Identificador y nombre son obligatorios.' }, { status: 400 });
+    if (!identificador) {
+      return NextResponse.json({ error: 'Debes indicar el identificador de acceso.' }, { status: 400 });
     }
 
-    const passwordTemporal = generateTemporaryPassword(rol === 'cliente' ? 'Cliente' : 'Auditor');
+    if (rol === 'cliente' && !parcela) {
+      return NextResponse.json({ error: 'Debes indicar la parcela del cliente.' }, { status: 400 });
+    }
+
+    const passwordTemporal = generateTemporaryPassword(rol === 'cliente' ? 'CL' : 'AU');
     const emailTecnico = makeTechnicalEmail(identificador);
     const admin: any = createAdminClient();
 
@@ -45,12 +52,29 @@ export async function POST(request: Request) {
 
     if (error) throw error;
 
+    if (rol === 'cliente' && data.user?.id) {
+      const { error: fichaError } = await admin
+        .from('fichas_cliente')
+        .upsert(
+          {
+            perfil_id: data.user.id,
+            parcela,
+            numero_rol_parcela: numeroRolParcela,
+            email_contacto: email,
+            titular_parcela: nombre
+          },
+          { onConflict: 'perfil_id' }
+        );
+
+      if (fichaError) throw fichaError;
+    }
+
     await admin.from('audit_log').insert({
       actor_id: profile.id,
       entidad: 'perfiles',
       entidad_id: data.user?.id ?? null,
       accion: 'crear_usuario',
-      detalle: { identificador, rol }
+      detalle: { identificador, rol, parcela, numero_rol_parcela: numeroRolParcela }
     });
 
     return NextResponse.json({

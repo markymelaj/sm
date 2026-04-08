@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 
 import type { Database } from '@/lib/types';
 
@@ -11,14 +11,12 @@ export function EditClientForm({ profile }: { profile: Perfil }) {
   const router = useRouter();
   const [nombre, setNombre] = useState(profile.nombre_completo);
   const [email, setEmail] = useState(profile.email ?? '');
-  const [parcela, setParcela] = useState(profile.parcela ?? '');
   const [activo, setActivo] = useState(profile.activo);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
-  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function updateClient(nextActivo = activo) {
     setLoading(true);
     setMessage('');
     setError('');
@@ -27,17 +25,23 @@ export function EditClientForm({ profile }: { profile: Perfil }) {
       const response = await fetch(`/api/admin/clientes/${profile.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre_completo: nombre, email, parcela, activo })
+        body: JSON.stringify({ nombre_completo: nombre, email, activo: nextActivo })
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || 'No se pudo actualizar el acceso.');
-      setMessage('Acceso actualizado.');
+      setActivo(nextActivo);
+      setMessage(nextActivo ? 'Acceso actualizado.' : 'Cliente desactivado. El historial se conserva y ya no podrá ingresar.');
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo actualizar el acceso.');
     } finally {
       setLoading(false);
     }
+  }
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await updateClient(activo);
   }
 
   return (
@@ -63,18 +67,27 @@ export function EditClientForm({ profile }: { profile: Perfil }) {
           <label className="label">Email real</label>
           <input className="input" value={email} onChange={(event) => setEmail(event.target.value)} />
         </div>
-        <div className="space-y-2 md:col-span-2">
-          <label className="label">Parcela o referencia</label>
-          <input className="input" value={parcela} onChange={(event) => setParcela(event.target.value)} />
-        </div>
       </div>
       <label className="flex items-center gap-2 text-sm text-slate-200">
         <input checked={activo} onChange={(event) => setActivo(event.target.checked)} type="checkbox" />
-        Usuario activo
+        Acceso activo
       </label>
+      <p className="muted text-xs">Desactivar el cliente bloquea su ingreso, pero conserva historial, pagos y trazabilidad.</p>
       {message ? <p className="text-sm text-emerald-300">{message}</p> : null}
       {error ? <p className="text-sm text-rose-300">{error}</p> : null}
-      <button className="btn btn-primary w-full sm:w-fit" disabled={loading} type="submit">{loading ? 'Guardando...' : 'Guardar acceso'}</button>
+      <div className="flex flex-wrap gap-3">
+        <button className="btn btn-primary w-full sm:w-fit" disabled={loading} type="submit">{loading ? 'Guardando...' : 'Guardar acceso'}</button>
+        {profile.rol === 'cliente' ? (
+          <button
+            className="btn btn-danger w-full sm:w-fit"
+            disabled={loading || !activo}
+            onClick={() => updateClient(false)}
+            type="button"
+          >
+            Desactivar cliente
+          </button>
+        ) : null}
+      </div>
     </form>
   );
 }

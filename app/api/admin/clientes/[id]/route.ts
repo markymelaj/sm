@@ -11,12 +11,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const body = await request.json();
     const supabase: any = await createClient();
 
-    const payload = {
-      nombre_completo: String(body.nombre_completo || '').trim(),
-      email: String(body.email || '').trim() || null,
-      parcela: String(body.parcela || '').trim() || null,
-      activo: Boolean(body.activo)
-    };
+    const payload: Record<string, unknown> = {};
+
+    if ('nombre_completo' in body) payload.nombre_completo = String(body.nombre_completo || '').trim();
+    if ('email' in body) payload.email = String(body.email || '').trim() || null;
+    if ('activo' in body) payload.activo = Boolean(body.activo);
+
+    if (Object.keys(payload).length === 0) {
+      return NextResponse.json({ error: 'No hay cambios para guardar.' }, { status: 400 });
+    }
 
     const { error } = await supabase.from('perfiles').update(payload).eq('id', id);
     if (error) throw error;

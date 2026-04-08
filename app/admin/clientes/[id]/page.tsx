@@ -4,6 +4,7 @@ import { ApproveRejectControls } from '@/components/admin/approve-reject-control
 import { CreateQuotaForm } from '@/components/admin/create-quota-form';
 import { EditClientForm } from '@/components/admin/edit-client-form';
 import { EditFichaForm } from '@/components/admin/edit-ficha-form';
+import { EditQuotaForm } from '@/components/admin/edit-quota-form';
 import { EditSeguimientoForm } from '@/components/admin/edit-seguimiento-form';
 import { EstadoValorEditor } from '@/components/admin/estado-valor-editor';
 import { ManualApproveButton } from '@/components/admin/manual-approve-button';
@@ -13,6 +14,7 @@ import { SolicitudStatusForm } from '@/components/admin/solicitud-status-form';
 import { StatusBadge } from '@/components/status-badge';
 import { requireRole } from '@/lib/auth';
 import { formatCurrency, formatDate } from '@/lib/format';
+import { getNextQuota, getPaidTotal, getPendingBalance, PROJECT_TOTAL } from '@/lib/payments';
 
 export default async function AdminClienteDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { supabase } = await requireRole(['admin']);
@@ -22,7 +24,7 @@ export default async function AdminClienteDetailPage({ params }: { params: Promi
     supabase.from('perfiles').select('*').eq('id', id).single(),
     supabase.from('fichas_cliente').select('*').eq('perfil_id', id).maybeSingle(),
     supabase.from('seguimiento_parcela').select('*').eq('perfil_id', id).maybeSingle(),
-    supabase.from('cuotas').select('*').eq('perfil_id', id).order('created_at', { ascending: false }),
+    supabase.from('cuotas').select('*').eq('perfil_id', id).order('fecha_vencimiento', { ascending: true }),
     supabase.from('solicitudes').select('*').eq('perfil_id', id).order('created_at', { ascending: false }),
     supabase.from('ficha_estado_tipos').select('*').eq('is_active', true).order('sort_order', { ascending: true })
   ]);
@@ -33,6 +35,10 @@ export default async function AdminClienteDetailPage({ params }: { params: Promi
   const cuotas: any[] = cuotasData ?? [];
   const solicitudes: any[] = solicitudesData ?? [];
   const estadoTipos: any[] = estadoTiposData ?? [];
+
+  const totalPagado = getPaidTotal(cuotas as any);
+  const saldoPendiente = getPendingBalance(cuotas as any);
+  const nextQuota = getNextQuota(cuotas as any);
 
   const estadoValues: any[] = ficha ? ((await supabase.from('ficha_estado_valores').select('*').eq('ficha_id', ficha.id)).data ?? []) : [];
   const comprobanteUrls = Object.fromEntries(
@@ -52,6 +58,21 @@ export default async function AdminClienteDetailPage({ params }: { params: Promi
   return (
     <div className="grid gap-6">
       <div className="flex flex-wrap gap-3"><Link className="btn btn-secondary" href="/admin/clientes">Volver</Link></div>
+
+      {profile.rol === 'cliente' ? (
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="card p-5"><p className="text-sm font-bold uppercase tracking-[0.22em] text-amber-300">Valor total</p><h2 className="mt-2 text-2xl font-bold text-white">{formatCurrency(PROJECT_TOTAL)}</h2></div>
+          <div className="card p-5"><p className="text-sm font-bold uppercase tracking-[0.22em] text-amber-300">Pagado</p><h2 className="mt-2 text-2xl font-bold text-white">{formatCurrency(totalPagado)}</h2></div>
+          <div className="card p-5"><p className="text-sm font-bold uppercase tracking-[0.22em] text-amber-300">Saldo pendiente</p><h2 className="mt-2 text-2xl font-bold text-white">{formatCurrency(saldoPendiente)}</h2></div>
+          <div className="card p-5">
+            <p className="text-sm font-bold uppercase tracking-[0.22em] text-amber-300">Próximo pago</p>
+            <h2 className="mt-2 text-xl font-bold text-white">{nextQuota ? formatCurrency(nextQuota.monto_total) : 'Sin próximos pagos'}</h2>
+            <p className="muted mt-2 text-sm">{nextQuota ? `Fecha de pago: ${formatDate(nextQuota.fecha_vencimiento)}` : 'No hay cuotas pendientes.'}</p>
+            {nextQuota ? <div className="mt-3"><StatusBadge label={nextQuota.estado} /></div> : null}
+          </div>
+        </section>
+      ) : null}
+
       <EditClientForm profile={profile} />
       {profile.rol === 'cliente' ? <EditFichaForm ficha={ficha} profileId={profile.id} /> : null}
       {profile.rol === 'cliente' ? <EditSeguimientoForm avanceParticular={seguimiento?.avance_particular ?? ''} profileId={profile.id} /> : null}
@@ -68,18 +89,18 @@ export default async function AdminClienteDetailPage({ params }: { params: Promi
 
       {profile.rol === 'cliente' ? (
         <section className="card p-5">
-          <p className="text-sm font-bold uppercase tracking-[0.22em] text-amber-300">Cuotas</p>
+          <p className="text-sm font-bold uppercase tracking-[0.22em] text-amber-300">Pagos y próximas cuotas</p>
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
             {cuotas.map((cuota) => (
               <article className="rounded-2xl border border-white/8 bg-slate-900/45 p-4" key={cuota.id}>
-                <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-lg font-bold text-white">{cuota.concepto}</h3><p className="muted text-sm">Vence {formatDate(cuota.fecha_vencimiento)}</p></div><StatusBadge label={cuota.estado} /></div>
+                <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-lg font-bold text-white">{cuota.concepto}</h3><p className="muted text-sm">Fecha de pago {formatDate(cuota.fecha_vencimiento)}</p></div><StatusBadge label={cuota.estado} /></div>
                 <p className="mt-3 text-xl font-bold text-white">{formatCurrency(cuota.monto_total)}</p>
                 {cuota.motivo_rechazo ? <p className="mt-3 rounded-2xl border border-rose-300/20 bg-rose-400/10 p-3 text-sm text-rose-200">Motivo: {cuota.motivo_rechazo}</p> : null}
                 {comprobanteUrls[cuota.id] ? <a className="mt-3 inline-flex text-sm font-semibold text-sky-300 underline" href={comprobanteUrls[cuota.id]!} rel="noreferrer" target="_blank">Abrir comprobante</a> : null}
-                <div className="mt-4 grid gap-4"><ApproveRejectControls quotaId={cuota.id} /><ManualApproveButton quotaId={cuota.id} /></div>
+                <div className="mt-4 grid gap-4"><ApproveRejectControls quotaId={cuota.id} /><ManualApproveButton quotaId={cuota.id} /><EditQuotaForm quota={cuota} /></div>
               </article>
             ))}
-            {cuotas.length === 0 ? <p className="muted text-sm">No hay cuotas cargadas.</p> : null}
+            {cuotas.length === 0 ? <p className="muted text-sm">No hay pagos cargados.</p> : null}
           </div>
         </section>
       ) : null}
@@ -97,14 +118,20 @@ export default async function AdminClienteDetailPage({ params }: { params: Promi
                     <StatusBadge label={solicitud.estado} />
                   </div>
                   <p className="mt-3 whitespace-pre-wrap break-words text-sm text-slate-200">{solicitud.detalle_inicial}</p>
+                  <div className="mt-4"><SolicitudStatusForm solicitudId={solicitud.id} /></div>
                   <div className="mt-4 grid gap-3">
-                    {thread.map((mensaje) => <div className={`rounded-2xl border p-3 text-sm ${mensaje.es_interno ? 'border-amber-300/20 bg-amber-400/10 text-amber-100' : 'border-white/8 bg-slate-950/50 text-slate-200'}`} key={mensaje.id}><p className="muted text-xs">{formatDate(mensaje.created_at)} {mensaje.es_interno ? '· interno' : ''}</p><p className="mt-2 whitespace-pre-wrap break-words">{mensaje.mensaje}</p></div>)}
+                    {thread.map((mensaje) => (
+                      <div className="rounded-2xl border border-white/8 bg-slate-950/50 p-3 text-sm text-slate-200" key={mensaje.id}>
+                        <p className="muted text-xs">{formatDate(mensaje.created_at)}</p>
+                        <p className="mt-2 whitespace-pre-wrap break-words">{mensaje.mensaje}</p>
+                      </div>
+                    ))}
                   </div>
-                  <div className="mt-4 grid gap-4 xl:grid-cols-2"><AddSolicitudMessageForm internal solicitudId={solicitud.id} /><SolicitudStatusForm currentStatus={solicitud.estado} solicitudId={solicitud.id} /></div>
+                  <div className="mt-4"><AddSolicitudMessageForm solicitudId={solicitud.id} /></div>
                 </article>
               );
             })}
-            {solicitudes.length === 0 ? <p className="muted text-sm">No hay solicitudes para este cliente.</p> : null}
+            {solicitudes.length === 0 ? <p className="muted text-sm">No hay solicitudes registradas.</p> : null}
           </div>
         </section>
       ) : null}

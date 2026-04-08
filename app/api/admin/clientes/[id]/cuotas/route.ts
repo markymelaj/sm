@@ -15,12 +15,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       concepto: String(body.concepto || '').trim(),
       monto_total: Number(body.monto_total || 0),
       fecha_vencimiento: body.fecha_vencimiento,
-      estado: 'pendiente'
+      estado: body.estado === 'pagado' ? 'pagado' : 'pendiente'
     };
 
     const { data, error } = await supabase.from('cuotas').insert(payload).select('id').single();
     if (error) throw error;
-    await supabase.from('cuota_auditorias').insert({ cuota_id: data.id, actor_id: profile.id, accion: 'crear_cuota', detalle: payload.concepto });
+    await supabase.from('cuota_auditorias').insert({ cuota_id: data.id, actor_id: profile.id, accion: 'crear_cuota', detalle: `${payload.concepto} · ${payload.estado}` });
     await supabase.from('audit_log').insert({ actor_id: profile.id, entidad: 'cuotas', entidad_id: data.id, accion: 'crear_cuota', detalle: payload });
     return NextResponse.json({ ok: true });
   } catch (error) {

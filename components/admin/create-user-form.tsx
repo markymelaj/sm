@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 
 import { ROLE_OPTIONS } from '@/lib/constants';
 
@@ -14,9 +14,17 @@ export function CreateUserForm() {
   const [identifier, setIdentifier] = useState('');
   const [name, setName] = useState('');
   const [parcel, setParcel] = useState('');
+  const [numeroRol, setNumeroRol] = useState('');
   const [email, setEmail] = useState('');
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  const identifierLabel = useMemo(
+    () => (role === 'cliente' ? 'RUT' : 'Usuario interno'),
+    [role]
+  );
+
+  const identifierPlaceholder = role === 'cliente' ? 'Ejemplo: 12345678K' : 'Ejemplo: rtenorio';
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
     setError('');
@@ -31,6 +39,7 @@ export function CreateUserForm() {
           identificador: identifier,
           nombre_completo: name,
           parcela: parcel,
+          numero_rol_parcela: numeroRol,
           email
         })
       });
@@ -38,10 +47,14 @@ export function CreateUserForm() {
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || 'No se pudo crear el usuario.');
 
-      setMessage(`Creado: ${payload.credentials.identificador.toLowerCase()} · clave: ${payload.credentials.passwordTemporal}`);
+      const ingreso = role === 'cliente' ? `RUT: ${payload.credentials.identificador}` : `usuario: ${payload.credentials.identificador}`;
+      setMessage(
+        `Usuario creado. Ingresa con ${ingreso} · clave temporal: ${payload.credentials.passwordTemporal}. En el primer ingreso deberá cambiarla.`
+      );
       setIdentifier('');
       setName('');
       setParcel('');
+      setNumeroRol('');
       setEmail('');
       router.refresh();
     } catch (err) {
@@ -67,20 +80,42 @@ export function CreateUserForm() {
           </select>
         </div>
         <div className="space-y-2">
-          <label className="label">RUT o usuario interno</label>
-          <input className="input" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder={role === 'cliente' ? '12.345.678-5' : 'usuario interno'} />
+          <label className="label">{identifierLabel}</label>
+          <input
+            className="input"
+            required
+            value={identifier}
+            onChange={(event) => setIdentifier(event.target.value)}
+            placeholder={identifierPlaceholder}
+          />
+          {role === 'cliente' ? <p className="muted text-xs">Ingresa el RUT sin puntos ni guion.</p> : null}
         </div>
         <div className="space-y-2">
           <label className="label">Nombre completo</label>
-          <input className="input" value={name} onChange={(event) => setName(event.target.value)} />
+          <input className="input" value={name} onChange={(event) => setName(event.target.value)} placeholder="Opcional por ahora" />
         </div>
         <div className="space-y-2">
-          <label className="label">Parcela o referencia</label>
-          <input className="input" value={parcel} onChange={(event) => setParcel(event.target.value)} />
+          <label className="label">Parcela</label>
+          <input
+            className="input"
+            required={role === 'cliente'}
+            value={parcel}
+            onChange={(event) => setParcel(event.target.value)}
+            placeholder="Ejemplo: Parcela 18"
+          />
         </div>
-        <div className="space-y-2 md:col-span-2">
-          <label className="label">Email real opcional</label>
-          <input className="input" type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
+        <div className="space-y-2">
+          <label className="label">Número de rol</label>
+          <input
+            className="input"
+            value={numeroRol}
+            onChange={(event) => setNumeroRol(event.target.value)}
+            placeholder="Opcional"
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="label">Email real</label>
+          <input className="input" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Opcional" />
         </div>
       </div>
       {message ? <p className="break-words text-sm text-emerald-300">{message}</p> : null}
