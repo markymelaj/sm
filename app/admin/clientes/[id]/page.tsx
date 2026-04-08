@@ -118,7 +118,7 @@ export default async function AdminClienteDetailPage({ params }: { params: Promi
                     <StatusBadge label={solicitud.estado} />
                   </div>
                   <p className="mt-3 whitespace-pre-wrap break-words text-sm text-slate-200">{solicitud.detalle_inicial}</p>
-                  <div className="mt-4"><SolicitudStatusForm solicitudId={solicitud.id} /></div>
+                  <div className="mt-4"><SolicitudStatusForm solicitudId={solicitud.id} currentStatus={solicitud.estado} /></div>
                   <div className="mt-4 grid gap-3">
                     {thread.map((mensaje) => (
                       <div className="rounded-2xl border border-white/8 bg-slate-950/50 p-3 text-sm text-slate-200" key={mensaje.id}>
