@@ -15,6 +15,7 @@ import { StatusBadge } from '@/components/status-badge';
 import { requireRole } from '@/lib/auth';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { getNextQuota, getPaidTotal, getPendingBalance, PROJECT_TOTAL } from '@/lib/payments';
+import { buildContractStatusMap } from '@/lib/contracts';
 
 export default async function AdminClienteDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { supabase } = await requireRole(['admin']);
@@ -41,6 +42,8 @@ export default async function AdminClienteDetailPage({ params }: { params: Promi
   const nextQuota = getNextQuota(cuotas as any);
 
   const estadoValues: any[] = ficha ? ((await supabase.from('ficha_estado_valores').select('*').eq('ficha_id', ficha.id)).data ?? []) : [];
+  const contractStatus = ficha ? buildContractStatusMap([{ id: ficha.id, perfil_id: profile.id }], estadoTipos, estadoValues).get(profile.id) ?? null : null;
+
   const comprobanteUrls = Object.fromEntries(
     await Promise.all(
       cuotas
@@ -60,7 +63,7 @@ export default async function AdminClienteDetailPage({ params }: { params: Promi
       <div className="flex flex-wrap gap-3"><Link className="btn btn-secondary" href="/admin/clientes">Volver</Link></div>
 
       {profile.rol === 'cliente' ? (
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           <div className="card p-5"><p className="text-sm font-bold uppercase tracking-[0.22em] text-amber-300">Valor total</p><h2 className="mt-2 text-2xl font-bold text-white">{formatCurrency(PROJECT_TOTAL)}</h2></div>
           <div className="card p-5"><p className="text-sm font-bold uppercase tracking-[0.22em] text-amber-300">Pagado</p><h2 className="mt-2 text-2xl font-bold text-white">{formatCurrency(totalPagado)}</h2></div>
           <div className="card p-5"><p className="text-sm font-bold uppercase tracking-[0.22em] text-amber-300">Saldo pendiente</p><h2 className="mt-2 text-2xl font-bold text-white">{formatCurrency(saldoPendiente)}</h2></div>
@@ -69,6 +72,11 @@ export default async function AdminClienteDetailPage({ params }: { params: Promi
             <h2 className="mt-2 text-xl font-bold text-white">{nextQuota ? formatCurrency(nextQuota.monto_total) : 'Sin próximos pagos'}</h2>
             <p className="muted mt-2 text-sm">{nextQuota ? `Fecha de pago: ${formatDate(nextQuota.fecha_vencimiento)}` : 'No hay cuotas pendientes.'}</p>
             {nextQuota ? <div className="mt-3"><StatusBadge label={nextQuota.estado} /></div> : null}
+          </div>
+          <div className="card p-5">
+            <p className="text-sm font-bold uppercase tracking-[0.22em] text-amber-300">Estado contractual</p>
+            <h2 className="mt-2 text-xl font-bold text-white">{contractStatus || 'Sin definir'}</h2>
+            <p className="muted mt-2 text-sm">Úsalo para seguimiento de notaría, firma y retiro.</p>
           </div>
         </section>
       ) : null}
