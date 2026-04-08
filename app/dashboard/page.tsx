@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 import { AddSolicitudMessageForm } from '@/components/dashboard/add-solicitud-message-form';
 import { CreateSolicitudForm } from '@/components/dashboard/create-solicitud-form';
 import { StatusBadge } from '@/components/status-badge';
@@ -69,6 +71,14 @@ export default async function ClientDashboardPage() {
             </div>
           ) : null}
         </div>
+      </section>
+
+      <section className="card flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Registrar pago</p>
+          <p className="mt-2 text-sm text-slate-200">Si ya pagaste o hiciste un abono que todavía no aparece en el portal, regístralo con tu comprobante para revisión.</p>
+        </div>
+        <Link className="btn btn-primary w-full sm:w-fit" href="/dashboard/registrar-pago">Registrar pago</Link>
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">

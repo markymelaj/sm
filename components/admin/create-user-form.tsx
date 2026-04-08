@@ -5,10 +5,29 @@ import { useMemo, useState, type FormEvent } from 'react';
 
 import { ROLE_OPTIONS } from '@/lib/constants';
 
+function buildAccessMessage(portalUrl: string, role: 'cliente' | 'auditor', identifier: string, passwordTemporal: string) {
+  const loginLabel = role === 'cliente' ? 'tu RUT sin puntos ni guion' : 'tu usuario asignado';
+  return [
+    'Hola. Tu acceso al Portal Santa Magdalena ya está listo.',
+    '',
+    `Ingresa en: ${portalUrl}`,
+    `Usuario: ${identifier}`,
+    `Debes escribir ${loginLabel}.`,
+    `Clave temporal: ${passwordTemporal}`,
+    '',
+    'En tu primer ingreso el sistema te pedirá cambiar la contraseña.',
+    'Dentro del portal podrás revisar tu información y tus pagos.',
+    '',
+    'Si tienes dudas, avísanos y te ayudamos.'
+  ].join('\n');
+}
+
 export function CreateUserForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [accessMessage, setAccessMessage] = useState('');
+  const [copyMessage, setCopyMessage] = useState('');
   const [error, setError] = useState('');
   const [role, setRole] = useState<'cliente' | 'auditor'>('cliente');
   const [identifier, setIdentifier] = useState('');
@@ -24,11 +43,23 @@ export function CreateUserForm() {
 
   const identifierPlaceholder = role === 'cliente' ? 'Ejemplo: 12345678K' : 'Ejemplo: rtenorio';
 
+  async function copyAccessMessage() {
+    if (!accessMessage) return;
+    try {
+      await navigator.clipboard.writeText(accessMessage);
+      setCopyMessage('Mensaje copiado.');
+    } catch {
+      setCopyMessage('No se pudo copiar automáticamente.');
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
     setError('');
     setMessage('');
+    setAccessMessage('');
+    setCopyMessage('');
 
     try {
       const response = await fetch('/api/admin/users/create', {
@@ -48,9 +79,11 @@ export function CreateUserForm() {
       if (!response.ok) throw new Error(payload.error || 'No se pudo crear el usuario.');
 
       const ingreso = role === 'cliente' ? `RUT: ${payload.credentials.identificador}` : `usuario: ${payload.credentials.identificador}`;
+      const portalUrl = typeof window !== 'undefined' ? `${window.location.origin}/login` : '/login';
       setMessage(
         `Usuario creado. Ingresa con ${ingreso} · clave temporal: ${payload.credentials.passwordTemporal}. En el primer ingreso deberá cambiarla.`
       );
+      setAccessMessage(buildAccessMessage(portalUrl, role, payload.credentials.identificador, payload.credentials.passwordTemporal));
       setIdentifier('');
       setName('');
       setParcel('');
@@ -119,6 +152,16 @@ export function CreateUserForm() {
         </div>
       </div>
       {message ? <p className="break-words text-sm text-emerald-300">{message}</p> : null}
+      {accessMessage ? (
+        <div className="rounded-2xl border border-white/8 bg-slate-950/50 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-white">Mensaje listo para enviar al usuario</p>
+            <button className="btn btn-secondary w-full sm:w-fit" onClick={copyAccessMessage} type="button">Copiar mensaje</button>
+          </div>
+          <textarea className="textarea mt-3 min-h-[210px]" readOnly value={accessMessage} />
+          {copyMessage ? <p className="mt-2 text-xs text-sky-300">{copyMessage}</p> : null}
+        </div>
+      ) : null}
       {error ? <p className="break-words text-sm text-rose-300">{error}</p> : null}
       <button className="btn btn-primary w-full sm:w-fit" disabled={loading} type="submit">{loading ? 'Creando...' : 'Crear usuario'}</button>
     </form>

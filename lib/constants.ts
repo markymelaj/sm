@@ -5,3 +5,9 @@ export const ROLE_OPTIONS = [
 ] as const;
 export const MAX_FILE_SIZE = 3 * 1024 * 1024;
 export const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png'] as const;
+
+export const CLIENT_PAYMENT_TYPE_OPTIONS = [
+  { value: 'cuota', label: 'Cuota' },
+  { value: 'pie', label: 'Pie' },
+  { value: 'adelanto', label: 'Adelanto de saldo pendiente' }
+] as const;

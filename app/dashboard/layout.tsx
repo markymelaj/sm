@@ -4,7 +4,8 @@ import { AppHeader } from '@/components/app-header';
 import { requireRole } from '@/lib/auth';
 
 const links = [
-  { href: '/dashboard', label: 'Mi panel' }
+  { href: '/dashboard', label: 'Mi panel' },
+  { href: '/dashboard/registrar-pago', label: 'Registrar pago' }
 ];
 
 export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
