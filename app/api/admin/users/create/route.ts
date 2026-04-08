@@ -37,8 +37,8 @@ export async function POST(request: Request) {
     const { data, error } = await admin.auth.admin.createUser({
       email: emailTecnico,
       password: passwordTemporal,
-      emailConfirm: true,
-      userMetadata: {
+      email_confirm: true,
+      user_metadata: {
         identificador,
         rut: rol === 'cliente' ? identificador : null,
         nombre_completo: nombre,

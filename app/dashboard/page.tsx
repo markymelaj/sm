@@ -62,19 +62,6 @@ export default async function ClientDashboardPage() {
         <p className="text-xs font-extrabold uppercase tracking-[0.24em] text-sky-300">Portal Santa Magdalena</p>
         <h2 className="mt-2 text-2xl font-bold text-white">Bienvenido</h2>
         <p className="mt-1 break-words text-base font-medium text-slate-100">Titular: {titularNombre}</p>
-        <p className="mt-4 text-sm leading-6 text-slate-200">
-          En este portal podrás revisar la información de tu parcela, cargar pagos realizados con sus comprobantes,
-          seguir avances y novedades de la obra, y enviarnos consultas o solicitudes cuando lo necesites.
-        </p>
-        <div className="mt-4 rounded-2xl border border-white/8 bg-slate-900/45 p-4 text-sm text-slate-200">
-          <p className="font-semibold text-white">Aquí podrás:</p>
-          <ul className="mt-3 grid gap-2 pl-5 text-sm text-slate-200 list-disc marker:text-sky-300">
-            <li>Cargar pagos realizados y subir sus comprobantes.</li>
-            <li>Revisar tu ficha y los datos de tu parcela.</li>
-            <li>Ver avances y novedades generales de la obra.</li>
-            <li>Hacer consultas o solicitudes relacionadas con tu parcela.</li>
-          </ul>
-        </div>
         {nextQuota ? (
           <div className="mt-4 rounded-2xl border border-sky-400/20 bg-sky-400/10 p-4 text-sm text-slate-100">
             <p className="font-semibold text-white">Próxima referencia de pago</p>
@@ -87,16 +74,7 @@ export default async function ClientDashboardPage() {
         ) : null}
       </section>
 
-      <section className="card flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Registrar pago</p>
-          <p className="mt-2 text-sm text-slate-200">Si ya pagaste o hiciste un abono que todavía no aparece en el portal, regístralo con tu comprobante para revisión.</p>
-        </div>
-        <Link className="btn btn-primary w-full sm:w-fit" href="/dashboard/registrar-pago">Registrar pago</Link>
-      </section>
-
-      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <section className="card p-5">
+      <section className="card p-5">
           <p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Mi ficha</p>
           <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
             <div><p className="muted">Titular</p><p className="break-words text-white">{ficha?.titular_parcela || profile.nombre_completo || '—'}</p></div>
@@ -143,6 +121,14 @@ export default async function ClientDashboardPage() {
           </div>
         </section>
       </div>
+
+      <section className="card flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Registrar pago</p>
+          <p className="mt-2 text-sm text-slate-200">Si ya pagaste o hiciste un abono que todavía no aparece en el portal, regístralo con tu comprobante para revisión.</p>
+        </div>
+        <Link className="btn btn-primary w-full sm:w-fit" href="/dashboard/registrar-pago">Registrar pago</Link>
+      </section>
 
       <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <section className="card p-5">
