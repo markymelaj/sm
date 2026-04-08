@@ -120,7 +120,6 @@ export default async function ClientDashboardPage() {
             {avances.length === 0 ? <p className="muted text-sm">Todavía no hay publicaciones generales.</p> : null}
           </div>
         </section>
-      </div>
 
       <section className="card flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
         <div>
