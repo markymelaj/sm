@@ -58,10 +58,12 @@ export async function POST(request: Request) {
         .upsert(
           {
             perfil_id: data.user.id,
+            titular_parcela: nombre,
+            rut_titular: identificador,
             parcela,
+            numero_parcela: parcela,
             numero_rol_parcela: numeroRolParcela,
-            email_contacto: email,
-            titular_parcela: nombre
+            email_contacto: email
           },
           { onConflict: 'perfil_id' }
         );

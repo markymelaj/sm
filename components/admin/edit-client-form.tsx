@@ -1,12 +1,13 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 
 import { formatIdentifier } from '@/lib/format';
 import type { Database } from '@/lib/types';
 
 type Perfil = Database['public']['Tables']['perfiles']['Row'];
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 export function EditClientForm({ profile }: { profile: Perfil }) {
   const router = useRouter();
@@ -17,47 +18,117 @@ export function EditClientForm({ profile }: { profile: Perfil }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [autoStatus, setAutoStatus] = useState<SaveStatus>('idle');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const firstRenderRef = useRef(true);
+  const lastSavedRef = useRef(JSON.stringify({
+    rut: profile.rut ?? profile.identificador,
+    nombre: profile.nombre_completo,
+    email: profile.email ?? ''
+  }));
 
   const currentAccess = useMemo(() => formatIdentifier(profile.rut ?? profile.identificador), [profile.identificador, profile.rut]);
+  const autoSnapshot = JSON.stringify({ rut, nombre, email });
 
-  async function updateClient(nextActivo = activo) {
-    setLoading(true);
-    setMessage('');
-    setError('');
+  async function saveClient(options: { silent?: boolean; nextActivo?: boolean; includeActivo?: boolean } = {}) {
+    const { silent = false, nextActivo = activo, includeActivo = false } = options;
+
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+
+    if (silent) {
+      setAutoStatus('saving');
+      setError('');
+    } else {
+      setLoading(true);
+      setMessage('');
+      setError('');
+    }
 
     try {
+      const body: Record<string, unknown> = {
+        nombre_completo: nombre,
+        email,
+        ...(profile.rol === 'cliente' ? { rut } : {})
+      };
+
+      if (includeActivo) {
+        body.activo = nextActivo;
+      }
+
       const response = await fetch(`/api/admin/clientes/${profile.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nombre_completo: nombre,
-          email,
-          activo: nextActivo,
-          rut: profile.rol === 'cliente' ? rut : undefined
-        })
+        body: JSON.stringify(body)
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || 'No se pudo actualizar el acceso.');
-      setActivo(nextActivo);
-      if (!nextActivo) {
+
+      if (includeActivo) {
+        setActivo(nextActivo);
+      }
+
+      const nextSnapshot = JSON.stringify({ rut, nombre, email });
+      lastSavedRef.current = nextSnapshot;
+
+      if (silent) {
+        setAutoStatus('saved');
+      } else if (!nextActivo) {
         setMessage('Cliente desactivado. El historial se conserva y ya no podrá ingresar.');
+        router.refresh();
       } else if (profile.rol === 'cliente') {
         setMessage('Acceso actualizado. Si cambiaste el RUT, el ingreso del cliente quedó actualizado con ese nuevo dato.');
+        router.refresh();
       } else {
         setMessage('Acceso actualizado.');
+        router.refresh();
       }
-      router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo actualizar el acceso.');
+      const nextError = err instanceof Error ? err.message : 'No se pudo actualizar el acceso.';
+      setError(nextError);
+      if (silent) {
+        setAutoStatus('error');
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    await updateClient(activo);
+    await saveClient({ includeActivo: true });
   }
+
+  useEffect(() => {
+    if (firstRenderRef.current) {
+      firstRenderRef.current = false;
+      return;
+    }
+
+    if (autoSnapshot === lastSavedRef.current) {
+      return;
+    }
+
+    debounceRef.current = setTimeout(() => {
+      void saveClient({ silent: true });
+    }, 1000);
+
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, [autoSnapshot]);
+
+  useEffect(() => {
+    if (autoStatus !== 'saved') return;
+    const timeout = setTimeout(() => setAutoStatus('idle'), 1800);
+    return () => clearTimeout(timeout);
+  }, [autoStatus]);
 
   return (
     <form className="card grid gap-4 p-5" onSubmit={onSubmit}>
@@ -98,6 +169,11 @@ export function EditClientForm({ profile }: { profile: Perfil }) {
         Acceso activo
       </label>
       <p className="muted text-xs">Desactivar el cliente bloquea su ingreso, pero conserva historial, pagos y trazabilidad.</p>
+      {autoStatus !== 'idle' ? (
+        <p className={`text-xs ${autoStatus === 'error' ? 'text-rose-300' : 'text-sky-300'}`}>
+          {autoStatus === 'saving' ? 'Guardando automáticamente...' : autoStatus === 'saved' ? 'Guardado automático.' : 'No se pudo guardar automáticamente.'}
+        </p>
+      ) : null}
       {message ? <p className="text-sm text-emerald-300">{message}</p> : null}
       {error ? <p className="text-sm text-rose-300">{error}</p> : null}
       <div className="flex flex-wrap gap-3">
@@ -106,7 +182,7 @@ export function EditClientForm({ profile }: { profile: Perfil }) {
           <button
             className="btn btn-danger w-full sm:w-fit"
             disabled={loading || !activo}
-            onClick={() => updateClient(false)}
+            onClick={() => saveClient({ nextActivo: false, includeActivo: true })}
             type="button"
           >
             Desactivar cliente

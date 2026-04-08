@@ -103,7 +103,7 @@ export function CreateUserForm() {
       <div>
         <p className="text-sm font-bold uppercase tracking-[0.22em] text-amber-300">Alta de usuario</p>
         <h3 className="mt-2 text-xl font-bold text-white">Crear cliente o auditor</h3>
-        <p className="muted mt-2 text-sm">El acceso y el RUT del cliente son el mismo dato. El mensaje para copiar aparece solo después de crear el usuario.</p>
+        <p className="muted mt-2 text-sm">El acceso y el RUT del cliente son el mismo dato. La parcela que ingreses aquí también quedará cargada en la ficha del cliente. El mensaje para copiar aparece solo después de crear el usuario.</p>
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
