@@ -54,23 +54,37 @@ export default async function ClientDashboardPage() {
     )
   );
 
+  const titularNombre = ficha?.titular_parcela || profile.nombre_completo || 'Titular';
+
   return (
     <div className="grid gap-6">
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="card p-5"><p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Valor total del proyecto</p><h2 className="mt-2 text-2xl font-bold text-white">{formatCurrency(PROJECT_TOTAL)}</h2></div>
-        <div className="card p-5"><p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Total pagado</p><h2 className="mt-2 text-2xl font-bold text-white">{formatCurrency(totalPagado)}</h2></div>
-        <div className="card p-5"><p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Saldo pendiente</p><h2 className="mt-2 text-2xl font-bold text-white">{formatCurrency(saldoPendiente)}</h2></div>
-        <div className="card p-5">
-          <p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Próxima cuota</p>
-          <h2 className="mt-2 text-2xl font-bold text-white">{nextQuota ? formatCurrency(nextQuota.monto_total) : 'Sin deuda próxima'}</h2>
-          <p className="muted mt-2 text-sm">{nextQuota ? `${nextQuota.concepto} · Fecha de pago ${formatDate(nextQuota.fecha_vencimiento)}` : 'No hay cuotas pendientes.'}</p>
-          {nextQuota ? (
-            <div className="mt-3 flex flex-wrap gap-2 items-center">
+      <section className="card p-5 sm:p-6">
+        <p className="text-xs font-extrabold uppercase tracking-[0.24em] text-sky-300">Portal Santa Magdalena</p>
+        <h2 className="mt-2 text-2xl font-bold text-white">Bienvenido</h2>
+        <p className="mt-1 break-words text-base font-medium text-slate-100">Titular: {titularNombre}</p>
+        <p className="mt-4 text-sm leading-6 text-slate-200">
+          En este portal podrás revisar la información de tu parcela, cargar pagos realizados con sus comprobantes,
+          seguir avances y novedades de la obra, y enviarnos consultas o solicitudes cuando lo necesites.
+        </p>
+        <div className="mt-4 rounded-2xl border border-white/8 bg-slate-900/45 p-4 text-sm text-slate-200">
+          <p className="font-semibold text-white">Aquí podrás:</p>
+          <ul className="mt-3 grid gap-2 pl-5 text-sm text-slate-200 list-disc marker:text-sky-300">
+            <li>Cargar pagos realizados y subir sus comprobantes.</li>
+            <li>Revisar tu ficha y los datos de tu parcela.</li>
+            <li>Ver avances y novedades generales de la obra.</li>
+            <li>Hacer consultas o solicitudes relacionadas con tu parcela.</li>
+          </ul>
+        </div>
+        {nextQuota ? (
+          <div className="mt-4 rounded-2xl border border-sky-400/20 bg-sky-400/10 p-4 text-sm text-slate-100">
+            <p className="font-semibold text-white">Próxima referencia de pago</p>
+            <p className="mt-2">{nextQuota.concepto} · Fecha de pago {formatDate(nextQuota.fecha_vencimiento)}</p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
               <StatusBadge label={nextQuota.estado} />
               {nextQuota.estado === 'en_revision' ? <span className="text-sm font-semibold text-sky-300">EN REVISIÓN</span> : null}
             </div>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
       </section>
 
       <section className="card flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
@@ -81,127 +95,143 @@ export default async function ClientDashboardPage() {
         <Link className="btn btn-primary w-full sm:w-fit" href="/dashboard/registrar-pago">Registrar pago</Link>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <div className="grid gap-6">
-          <div className="card p-5">
-            <p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Mi ficha</p>
-            <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-              <div><p className="muted">Titular</p><p className="break-words text-white">{ficha?.titular_parcela || profile.nombre_completo || '—'}</p></div>
-              <div><p className="muted">RUT titular</p><p className="break-words text-white">{ficha?.rut_titular ? formatRut(ficha.rut_titular) : profile.rut ? formatRut(profile.rut) : '—'}</p></div>
-              <div><p className="muted">Número de rol</p><p className="break-words text-white">{ficha?.numero_rol_parcela || '—'}</p></div>
-              <div><p className="muted">Parcela</p><p className="break-words text-white">{ficha?.parcela || profile.parcela || '—'}</p></div>
-              <div><p className="muted">Teléfono</p><p className="break-words text-white">{ficha?.telefono || '—'}</p></div>
-              <div><p className="muted">Email</p><p className="break-words text-white">{ficha?.email_contacto || profile.email || '—'}</p></div>
-            </div>
-            <div className="mt-4 rounded-2xl border border-white/8 bg-slate-900/50 p-4">
-              <p className="muted text-xs uppercase tracking-[0.2em]">Seguimiento particular</p>
-              <p className="mt-2 whitespace-pre-wrap break-words text-sm text-white">{seguimiento?.avance_particular || 'Sin observaciones particulares por ahora.'}</p>
-            </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {estadoTipos.map((tipo) => {
-                const value = estadoValues.find((item) => item.estado_tipo_id === tipo.id);
-                const renderValue = tipo.tipo_input === 'boolean'
-                  ? value?.valor_bool ? 'Sí' : 'No'
-                  : tipo.tipo_input === 'date'
-                    ? formatDate(value?.valor_fecha)
-                    : value?.valor_texto || '—';
-                return (
-                  <div className="rounded-2xl border border-white/8 bg-slate-900/40 p-4" key={tipo.id}>
-                    <p className="text-sm font-bold text-white">{tipo.etiqueta}</p>
-                    <p className="mt-1 break-words text-sm text-slate-200">{renderValue}</p>
-                    {value?.observacion ? <p className="muted mt-2 text-xs break-words">{value.observacion}</p> : null}
-                  </div>
-                );
-              })}
+      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <section className="card p-5">
+          <p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Mi ficha</p>
+          <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+            <div><p className="muted">Titular</p><p className="break-words text-white">{ficha?.titular_parcela || profile.nombre_completo || '—'}</p></div>
+            <div><p className="muted">RUT titular</p><p className="break-words text-white">{ficha?.rut_titular ? formatRut(ficha.rut_titular) : profile.rut ? formatRut(profile.rut) : '—'}</p></div>
+            <div><p className="muted">Número de rol</p><p className="break-words text-white">{ficha?.numero_rol_parcela || '—'}</p></div>
+            <div><p className="muted">Parcela</p><p className="break-words text-white">{ficha?.parcela || profile.parcela || '—'}</p></div>
+            <div><p className="muted">Teléfono</p><p className="break-words text-white">{ficha?.telefono || '—'}</p></div>
+            <div><p className="muted">Email</p><p className="break-words text-white">{ficha?.email_contacto || profile.email || '—'}</p></div>
+          </div>
+          <div className="mt-4 rounded-2xl border border-white/8 bg-slate-900/50 p-4">
+            <p className="muted text-xs uppercase tracking-[0.2em]">Seguimiento particular</p>
+            <p className="mt-2 whitespace-pre-wrap break-words text-sm text-white">{seguimiento?.avance_particular || 'Sin observaciones particulares por ahora.'}</p>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {estadoTipos.map((tipo) => {
+              const value = estadoValues.find((item) => item.estado_tipo_id === tipo.id);
+              const renderValue = tipo.tipo_input === 'boolean'
+                ? value?.valor_bool ? 'Sí' : 'No'
+                : tipo.tipo_input === 'date'
+                  ? formatDate(value?.valor_fecha)
+                  : value?.valor_texto || '—';
+              return (
+                <div className="rounded-2xl border border-white/8 bg-slate-900/40 p-4" key={tipo.id}>
+                  <p className="text-sm font-bold text-white">{tipo.etiqueta}</p>
+                  <p className="mt-1 break-words text-sm text-slate-200">{renderValue}</p>
+                  {value?.observacion ? <p className="muted mt-2 text-xs break-words">{value.observacion}</p> : null}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="card p-5">
+          <p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Avances generales</p>
+          <div className="mt-4 grid gap-4">
+            {avances.map((avance) => (
+              <article className="rounded-2xl border border-white/8 bg-slate-900/45 p-4" key={avance.id}>
+                <p className="text-sm font-bold text-white">{avance.titulo}</p>
+                <p className="muted mt-1 text-xs">{formatDate(avance.fecha)}</p>
+                <p className="mt-3 whitespace-pre-wrap break-words text-sm text-slate-200">{avance.descripcion}</p>
+              </article>
+            ))}
+            {avances.length === 0 ? <p className="muted text-sm">Todavía no hay publicaciones generales.</p> : null}
+          </div>
+        </section>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+        <section className="card p-5">
+          <p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Datos de pago</p>
+          <div className="mt-4 rounded-2xl border border-white/8 bg-slate-900/45 p-4 text-sm text-slate-200">
+            <p className="font-semibold text-white">Transferencia</p>
+            <div className="mt-3 grid gap-1">
+              {TRANSFER_DETAILS.map((line) => <p key={line}>{line}</p>)}
             </div>
           </div>
+          <div className="mt-4 rounded-2xl border border-white/8 bg-slate-900/45 p-4 text-sm text-slate-200">
+            <p className="font-semibold text-white">Tarjeta</p>
+            <p className="mt-2">{CARD_PAYMENT_MESSAGE}</p>
+            <p className="mt-3 font-semibold text-sky-300">Pagar online: Próximamente</p>
+          </div>
+        </section>
 
-          <div className="card p-5">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Próximas cuotas</p>
-                <p className="muted mt-2 text-sm">Sube tu comprobante cuando corresponda. Pagar online: Próximamente.</p>
-              </div>
-            </div>
-            <div className="mt-4 grid gap-4">
-              {cuotasPendientes.map((cuota) => (
-                <article className="rounded-2xl border border-white/8 bg-slate-900/45 p-4" key={cuota.id}>
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0">
-                      <h3 className="break-words text-lg font-bold text-white">{cuota.concepto}</h3>
-                      <p className="muted text-sm">Fecha de pago {formatDate(cuota.fecha_vencimiento)}</p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <StatusBadge label={cuota.estado} />
-                      {cuota.estado === 'en_revision' ? <span className="text-sm font-semibold text-sky-300">EN REVISIÓN</span> : null}
-                    </div>
-                  </div>
-                  <p className="mt-3 text-xl font-bold text-white">{formatCurrency(cuota.monto_total)}</p>
-                  {cuota.motivo_rechazo ? <p className="mt-3 rounded-2xl border border-rose-300/20 bg-rose-400/10 p-3 text-sm text-rose-200">Motivo de rechazo: {cuota.motivo_rechazo}</p> : null}
-                  {comprobanteUrls[cuota.id] ? <a className="mt-3 inline-flex text-sm font-semibold text-sky-300 underline" href={comprobanteUrls[cuota.id]!} rel="noreferrer" target="_blank">Ver comprobante cargado</a> : null}
-                  {(cuota.estado === 'pendiente' || cuota.estado === 'rechazado') ? (
-                    <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
-                      <UploadComprobanteForm cuotaId={cuota.id} />
-                      <div className="rounded-2xl border border-white/8 bg-slate-950/40 p-4 text-sm text-slate-200">
-                        <p className="font-semibold text-white">Pagar online</p>
-                        <p className="muted mt-2">Próximamente</p>
-                      </div>
-                    </div>
-                  ) : null}
-                </article>
-              ))}
-              {cuotasPendientes.length === 0 ? <p className="muted text-sm">No hay cuotas pendientes.</p> : null}
+        <section className="card p-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Próximas cuotas</p>
+              <p className="muted mt-2 text-sm">Sube tu comprobante cuando corresponda. Pagar online: Próximamente.</p>
             </div>
           </div>
-
-          <div className="card p-5">
-            <p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Pagos registrados</p>
-            <div className="mt-4 grid gap-4">
-              {cuotasPagadas.map((cuota) => (
-                <article className="rounded-2xl border border-white/8 bg-slate-900/45 p-4" key={cuota.id}>
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0">
-                      <h3 className="break-words text-lg font-bold text-white">{cuota.concepto}</h3>
-                      <p className="muted text-sm">Fecha de pago {formatDate(cuota.fecha_vencimiento)}</p>
-                    </div>
+          <div className="mt-4 grid gap-4">
+            {cuotasPendientes.map((cuota) => (
+              <article className="rounded-2xl border border-white/8 bg-slate-900/45 p-4" key={cuota.id}>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <h3 className="break-words text-lg font-bold text-white">{cuota.concepto}</h3>
+                    <p className="muted text-sm">Fecha de pago {formatDate(cuota.fecha_vencimiento)}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
                     <StatusBadge label={cuota.estado} />
+                    {cuota.estado === 'en_revision' ? <span className="text-sm font-semibold text-sky-300">EN REVISIÓN</span> : null}
                   </div>
-                  <p className="mt-3 text-xl font-bold text-white">{formatCurrency(cuota.monto_total)}</p>
-                  {comprobanteUrls[cuota.id] ? <a className="mt-3 inline-flex text-sm font-semibold text-sky-300 underline" href={comprobanteUrls[cuota.id]!} rel="noreferrer" target="_blank">Ver comprobante cargado</a> : null}
-                </article>
-              ))}
-              {cuotasPagadas.length === 0 ? <p className="muted text-sm">Todavía no hay pagos registrados.</p> : null}
-            </div>
+                </div>
+                <p className="mt-3 text-xl font-bold text-white">{formatCurrency(cuota.monto_total)}</p>
+                {cuota.motivo_rechazo ? <p className="mt-3 rounded-2xl border border-rose-300/20 bg-rose-400/10 p-3 text-sm text-rose-200">Motivo de rechazo: {cuota.motivo_rechazo}</p> : null}
+                {comprobanteUrls[cuota.id] ? <a className="mt-3 inline-flex text-sm font-semibold text-sky-300 underline" href={comprobanteUrls[cuota.id]!} rel="noreferrer" target="_blank">Ver comprobante cargado</a> : null}
+                {(cuota.estado === 'pendiente' || cuota.estado === 'rechazado') ? (
+                  <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+                    <UploadComprobanteForm cuotaId={cuota.id} />
+                    <div className="rounded-2xl border border-white/8 bg-slate-950/40 p-4 text-sm text-slate-200">
+                      <p className="font-semibold text-white">Pagar online</p>
+                      <p className="muted mt-2">Próximamente</p>
+                    </div>
+                  </div>
+                ) : null}
+              </article>
+            ))}
+            {cuotasPendientes.length === 0 ? <p className="muted text-sm">No hay cuotas pendientes.</p> : null}
           </div>
-        </div>
+        </section>
+      </div>
 
-        <div className="grid gap-6">
+      <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+        <section className="card p-5">
+          <p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Pagos registrados</p>
+          <div className="mt-4 grid gap-4">
+            {cuotasPagadas.map((cuota) => (
+              <article className="rounded-2xl border border-white/8 bg-slate-900/45 p-4" key={cuota.id}>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <h3 className="break-words text-lg font-bold text-white">{cuota.concepto}</h3>
+                    <p className="muted text-sm">Fecha de pago {formatDate(cuota.fecha_vencimiento)}</p>
+                  </div>
+                  <StatusBadge label={cuota.estado} />
+                </div>
+                <p className="mt-3 text-xl font-bold text-white">{formatCurrency(cuota.monto_total)}</p>
+                {comprobanteUrls[cuota.id] ? <a className="mt-3 inline-flex text-sm font-semibold text-sky-300 underline" href={comprobanteUrls[cuota.id]!} rel="noreferrer" target="_blank">Ver comprobante cargado</a> : null}
+              </article>
+            ))}
+            {cuotasPagadas.length === 0 ? <p className="muted text-sm">Todavía no hay pagos registrados.</p> : null}
+          </div>
+        </section>
+
+        <section className="grid gap-6">
           <div className="card p-5">
-            <p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Datos de pago</p>
-            <div className="mt-4 rounded-2xl border border-white/8 bg-slate-900/45 p-4 text-sm text-slate-200">
-              <p className="font-semibold text-white">Transferencia</p>
-              <div className="mt-3 grid gap-1">
-                {TRANSFER_DETAILS.map((line) => <p key={line}>{line}</p>)}
+            <p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Resumen económico</p>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+              <div className="rounded-2xl border border-white/8 bg-slate-900/45 p-4"><p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Valor total del proyecto</p><h2 className="mt-2 text-2xl font-bold text-white">{formatCurrency(PROJECT_TOTAL)}</h2></div>
+              <div className="rounded-2xl border border-white/8 bg-slate-900/45 p-4"><p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Total pagado</p><h2 className="mt-2 text-2xl font-bold text-white">{formatCurrency(totalPagado)}</h2></div>
+              <div className="rounded-2xl border border-white/8 bg-slate-900/45 p-4"><p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Saldo pendiente</p><h2 className="mt-2 text-2xl font-bold text-white">{formatCurrency(saldoPendiente)}</h2></div>
+              <div className="rounded-2xl border border-white/8 bg-slate-900/45 p-4">
+                <p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Estado actual</p>
+                <h2 className="mt-2 text-lg font-bold text-white">{nextQuota ? nextQuota.estado.replaceAll('_', ' ') : 'Al día'}</h2>
+                <p className="muted mt-2 text-sm">{nextQuota ? `${nextQuota.concepto} · Fecha de pago ${formatDate(nextQuota.fecha_vencimiento)}` : 'No hay cuotas pendientes por revisar.'}</p>
               </div>
-            </div>
-            <div className="mt-4 rounded-2xl border border-white/8 bg-slate-900/45 p-4 text-sm text-slate-200">
-              <p className="font-semibold text-white">Tarjeta</p>
-              <p className="mt-2">{CARD_PAYMENT_MESSAGE}</p>
-              <p className="mt-3 font-semibold text-sky-300">Pagar online: Próximamente</p>
-            </div>
-          </div>
-
-          <div className="card p-5">
-            <p className="text-sm font-bold uppercase tracking-[0.22em] text-sky-300">Avances generales</p>
-            <div className="mt-4 grid gap-4">
-              {avances.map((avance) => (
-                <article className="rounded-2xl border border-white/8 bg-slate-900/45 p-4" key={avance.id}>
-                  <p className="text-sm font-bold text-white">{avance.titulo}</p>
-                  <p className="muted mt-1 text-xs">{formatDate(avance.fecha)}</p>
-                  <p className="mt-3 whitespace-pre-wrap break-words text-sm text-slate-200">{avance.descripcion}</p>
-                </article>
-              ))}
-              {avances.length === 0 ? <p className="muted text-sm">Todavía no hay publicaciones generales.</p> : null}
             </div>
           </div>
 
@@ -238,8 +268,8 @@ export default async function ClientDashboardPage() {
               {solicitudes.length === 0 ? <p className="muted text-sm">Todavía no has enviado casos.</p> : null}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
     </div>
   );
 }
