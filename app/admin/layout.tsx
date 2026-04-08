@@ -6,6 +6,8 @@ import { requireRole } from '@/lib/auth';
 const links = [
   { href: '/admin', label: 'Resumen' },
   { href: '/admin/clientes', label: 'Clientes' },
+  { href: '/admin/usuarios', label: 'Usuarios internos' },
+  { href: '/admin/usuarios/alta', label: 'Alta de usuario' },
   { href: '/admin/pagos', label: 'Pagos' },
   { href: '/admin/solicitudes', label: 'Solicitudes' },
   { href: '/admin/avances', label: 'Avances' },

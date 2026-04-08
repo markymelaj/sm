@@ -6,12 +6,13 @@ import { useMemo, useState, type FormEvent } from 'react';
 import { ROLE_OPTIONS } from '@/lib/constants';
 
 function buildAccessMessage(portalUrl: string, role: 'cliente' | 'auditor', identifier: string, passwordTemporal: string) {
+  const accessLabel = role === 'cliente' ? 'RUT de acceso' : 'Usuario de acceso';
   const loginLabel = role === 'cliente' ? 'tu RUT sin puntos ni guion' : 'tu usuario asignado';
   return [
     'Hola. Tu acceso al Portal Santa Magdalena ya está listo.',
     '',
     `Ingresa en: ${portalUrl}`,
-    `Usuario: ${identifier}`,
+    `${accessLabel}: ${identifier}`,
     `Debes escribir ${loginLabel}.`,
     `Clave temporal: ${passwordTemporal}`,
     '',
@@ -78,7 +79,7 @@ export function CreateUserForm() {
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || 'No se pudo crear el usuario.');
 
-      const ingreso = role === 'cliente' ? `RUT: ${payload.credentials.identificador}` : `usuario: ${payload.credentials.identificador}`;
+      const ingreso = role === 'cliente' ? `RUT de acceso: ${payload.credentials.identificador}` : `usuario: ${payload.credentials.identificador}`;
       const portalUrl = typeof window !== 'undefined' ? `${window.location.origin}/login` : '/login';
       setMessage(
         `Usuario creado. Ingresa con ${ingreso} · clave temporal: ${payload.credentials.passwordTemporal}. En el primer ingreso deberá cambiarla.`
@@ -102,6 +103,7 @@ export function CreateUserForm() {
       <div>
         <p className="text-sm font-bold uppercase tracking-[0.22em] text-amber-300">Alta de usuario</p>
         <h3 className="mt-2 text-xl font-bold text-white">Crear cliente o auditor</h3>
+        <p className="muted mt-2 text-sm">El acceso y el RUT del cliente son el mismo dato. El mensaje para copiar aparece solo después de crear el usuario.</p>
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">

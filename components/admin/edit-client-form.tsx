@@ -1,20 +1,24 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 
+import { formatIdentifier } from '@/lib/format';
 import type { Database } from '@/lib/types';
 
 type Perfil = Database['public']['Tables']['perfiles']['Row'];
 
 export function EditClientForm({ profile }: { profile: Perfil }) {
   const router = useRouter();
+  const [rut, setRut] = useState(profile.rut ?? profile.identificador);
   const [nombre, setNombre] = useState(profile.nombre_completo);
   const [email, setEmail] = useState(profile.email ?? '');
   const [activo, setActivo] = useState(profile.activo);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+
+  const currentAccess = useMemo(() => formatIdentifier(profile.rut ?? profile.identificador), [profile.identificador, profile.rut]);
 
   async function updateClient(nextActivo = activo) {
     setLoading(true);
@@ -25,12 +29,23 @@ export function EditClientForm({ profile }: { profile: Perfil }) {
       const response = await fetch(`/api/admin/clientes/${profile.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre_completo: nombre, email, activo: nextActivo })
+        body: JSON.stringify({
+          nombre_completo: nombre,
+          email,
+          activo: nextActivo,
+          rut: profile.rol === 'cliente' ? rut : undefined
+        })
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || 'No se pudo actualizar el acceso.');
       setActivo(nextActivo);
-      setMessage(nextActivo ? 'Acceso actualizado.' : 'Cliente desactivado. El historial se conserva y ya no podrá ingresar.');
+      if (!nextActivo) {
+        setMessage('Cliente desactivado. El historial se conserva y ya no podrá ingresar.');
+      } else if (profile.rol === 'cliente') {
+        setMessage('Acceso actualizado. Si cambiaste el RUT, el ingreso del cliente quedó actualizado con ese nuevo dato.');
+      } else {
+        setMessage('Acceso actualizado.');
+      }
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo actualizar el acceso.');
@@ -52,8 +67,18 @@ export function EditClientForm({ profile }: { profile: Perfil }) {
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
-          <label className="label">Identificador</label>
-          <input className="input" disabled value={profile.identificador} />
+          <label className="label">{profile.rol === 'cliente' ? 'RUT de acceso' : 'Usuario interno'}</label>
+          <input
+            className="input"
+            disabled={profile.rol !== 'cliente'}
+            value={profile.rol === 'cliente' ? rut : profile.identificador}
+            onChange={(event) => setRut(event.target.value)}
+          />
+          {profile.rol === 'cliente' ? (
+            <p className="muted text-xs">El cliente entra con este RUT. Si lo cambias, también se actualizará su acceso.</p>
+          ) : (
+            <p className="muted text-xs">Acceso actual: {currentAccess}</p>
+          )}
         </div>
         <div className="space-y-2">
           <label className="label">Rol</label>

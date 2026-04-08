@@ -26,8 +26,9 @@ export default async function AdminDashboardPage() {
         <div className="card p-5"><p className="text-sm font-bold uppercase tracking-[0.22em] text-amber-300">Solicitudes activas</p><h2 className="mt-2 text-2xl font-bold text-white">{solicitudesActivas}</h2></div>
         <div className="card p-5"><p className="text-sm font-bold uppercase tracking-[0.22em] text-amber-300">Clientes activos</p><h2 className="mt-2 text-2xl font-bold text-white">{clientesActivos}</h2></div>
       </section>
-      <section className="card grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3">
-        <Link className="rounded-2xl border border-white/8 bg-slate-900/45 p-4" href="/admin/clientes"><p className="text-lg font-bold text-white">Gestión de clientes</p><p className="muted mt-2 text-sm">Alta de usuarios, fichas, estados, seguimiento y cuotas.</p></Link>
+      <section className="card grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-4">
+        <Link className="rounded-2xl border border-white/8 bg-slate-900/45 p-4" href="/admin/clientes"><p className="text-lg font-bold text-white">Gestión de clientes</p><p className="muted mt-2 text-sm">Listado, ficha, seguimiento, pagos y edición de acceso.</p></Link>
+        <Link className="rounded-2xl border border-white/8 bg-slate-900/45 p-4" href="/admin/usuarios"><p className="text-lg font-bold text-white">Usuarios internos</p><p className="muted mt-2 text-sm">Administra administradores y auditores por separado.</p></Link>
         <Link className="rounded-2xl border border-white/8 bg-slate-900/45 p-4" href="/admin/pagos"><p className="text-lg font-bold text-white">Validación de pagos</p><p className="muted mt-2 text-sm">Aprobar, rechazar y registrar auditoría.</p></Link>
         <Link className="rounded-2xl border border-white/8 bg-slate-900/45 p-4" href="/admin/solicitudes"><p className="text-lg font-bold text-white">Solicitudes y consultas</p><p className="muted mt-2 text-sm">Responder, aprobar, rechazar o cerrar casos.</p></Link>
       </section>
