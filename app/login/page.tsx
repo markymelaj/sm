@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { Suspense } from 'react';
 
 import { LoginForm } from '@/components/login-form';
+import { InstallAppEntry } from '@/components/pwa/install-app-entry';
 
 export default function LoginPage() {
   return (
@@ -12,6 +13,7 @@ export default function LoginPage() {
         <h1 className="mt-3 text-3xl font-bold text-white">Acceso al sistema</h1>
         <p className="muted mt-3 text-sm">Ingresa tu RUT para revisar tu información y pagos.</p>
         <div className="mt-6">
+          <InstallAppEntry />
           <Suspense fallback={<div className="muted text-sm">Cargando acceso...</div>}>
             <LoginForm />
           </Suspense>
