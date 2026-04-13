@@ -2,6 +2,8 @@ import Link from 'next/link';
 
 import { AddSolicitudMessageForm } from '@/components/dashboard/add-solicitud-message-form';
 import { CreateSolicitudForm } from '@/components/dashboard/create-solicitud-form';
+import { EditMyContractStatusForm } from '@/components/dashboard/edit-my-contract-status-form';
+import { EditMyFichaForm } from '@/components/dashboard/edit-my-ficha-form';
 import { StatusBadge } from '@/components/status-badge';
 import { UploadComprobanteForm } from '@/components/dashboard/upload-comprobante-form';
 import { formatCurrency, formatDate } from '@/lib/format';
@@ -84,6 +86,7 @@ export default async function ClientDashboardPage() {
             <div><p className="muted">Teléfono</p><p className="break-words text-white">{ficha?.telefono || '—'}</p></div>
             <div><p className="muted">Email</p><p className="break-words text-white">{ficha?.email_contacto || profile.email || '—'}</p></div>
           </div>
+          {ficha?.id ? <div className="mt-4"><EditMyFichaForm fichaId={ficha.id} initialNumeroRol={ficha?.numero_rol_parcela || ''} /></div> : null}
           <div className="mt-4 rounded-2xl border border-white/8 bg-slate-900/50 p-4">
             <p className="muted text-xs uppercase tracking-[0.2em]">Seguimiento particular</p>
             <p className="mt-2 whitespace-pre-wrap break-words text-sm text-white">{seguimiento?.avance_particular || 'Sin observaciones particulares por ahora.'}</p>
@@ -105,6 +108,7 @@ export default async function ClientDashboardPage() {
               );
             })}
           </div>
+          {ficha?.id ? <div className="mt-4"><EditMyContractStatusForm estadoTipos={estadoTipos} estadoValues={estadoValues} fichaId={ficha.id} /></div> : null}
         </section>
 
         <section className="card p-5">

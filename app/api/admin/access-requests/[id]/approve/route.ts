@@ -113,6 +113,35 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     );
     if (fichaError) throw fichaError;
 
+    const { data: fichaCreada, error: fichaLookupError } = await admin
+      .from('fichas_cliente')
+      .select('id')
+      .eq('perfil_id', userId)
+      .maybeSingle();
+    if (fichaLookupError) throw fichaLookupError;
+
+    if (fichaCreada?.id) {
+      const { data: tipoInscripcion, error: tipoError } = await admin
+        .from('ficha_estado_tipos')
+        .select('id')
+        .eq('codigo', 'inscripcion')
+        .maybeSingle();
+      if (tipoError) throw tipoError;
+      if (tipoInscripcion?.id) {
+        const { error: estadoError } = await admin.from('ficha_estado_valores').upsert(
+          {
+            ficha_id: fichaCreada.id,
+            estado_tipo_id: tipoInscripcion.id,
+            valor_bool: true,
+            observacion: 'Solicitud de acceso aprobada',
+            updated_by: profile.id
+          },
+          { onConflict: 'ficha_id,estado_tipo_id' }
+        );
+        if (estadoError) throw estadoError;
+      }
+    }
+
     const { error: requestUpdateError } = await admin
       .from('solicitudes_acceso')
       .update({

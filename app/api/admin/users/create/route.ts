@@ -69,6 +69,35 @@ export async function POST(request: Request) {
         );
 
       if (fichaError) throw fichaError;
+
+      const { data: fichaCreada, error: fichaLookupError } = await admin
+        .from('fichas_cliente')
+        .select('id')
+        .eq('perfil_id', data.user.id)
+        .maybeSingle();
+      if (fichaLookupError) throw fichaLookupError;
+
+      if (fichaCreada?.id) {
+        const { data: tipoInscripcion, error: tipoError } = await admin
+          .from('ficha_estado_tipos')
+          .select('id')
+          .eq('codigo', 'inscripcion')
+          .maybeSingle();
+        if (tipoError) throw tipoError;
+        if (tipoInscripcion?.id) {
+          const { error: estadoError } = await admin.from('ficha_estado_valores').upsert(
+            {
+              ficha_id: fichaCreada.id,
+              estado_tipo_id: tipoInscripcion.id,
+              valor_bool: true,
+              observacion: 'Alta inicial del sistema',
+              updated_by: profile.id
+            },
+            { onConflict: 'ficha_id,estado_tipo_id' }
+          );
+          if (estadoError) throw estadoError;
+        }
+      }
     }
 
     await admin.from('audit_log').insert({
