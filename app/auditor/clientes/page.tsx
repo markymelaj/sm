@@ -6,13 +6,19 @@ import { formatCurrency, formatIdentifier } from '@/lib/format';
 import { requireRole } from '@/lib/auth';
 import { getPendingBalance } from '@/lib/payments';
 
+const SYSTEM_FILTERS = [
+  { key: 'todos', label: 'Todos' },
+  { key: 'con-acceso', label: 'Con acceso' },
+  { key: 'sin-alta', label: 'Sin alta sistema' }
+] as const;
+
 export default async function AuditorClientesPage({
   searchParams
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; system?: string }>;
 }) {
   const { supabase } = await requireRole(['auditor']);
-  const { q = '' } = await searchParams;
+  const { q = '', system = 'todos' } = await searchParams;
 
   const [{ data: profilesData }, { data: fichasData }, { data: cuotasData }] = await Promise.all([
     supabase.from('perfiles').select('*').eq('rol', 'cliente').order('created_at', { ascending: false }),
@@ -29,9 +35,10 @@ export default async function AuditorClientesPage({
   }
 
   const query = normalizeClientSearch(q);
+  const normalizedSystem = SYSTEM_FILTERS.some((item) => item.key === system) ? system : 'todos';
   const profiles: any[] = (profilesData ?? []).filter((profile: any) => {
     const ficha = fichaMap.get(profile.id);
-    return matchesClientSearch(query, [
+    const matchesSearch = matchesClientSearch(query, [
       profile.nombre_completo,
       profile.rut,
       profile.identificador,
@@ -39,6 +46,11 @@ export default async function AuditorClientesPage({
       ficha?.parcela,
       ficha?.numero_rol_parcela
     ]);
+
+    if (!matchesSearch) return false;
+    if (normalizedSystem === 'con-acceso') return profile.activo === true;
+    if (normalizedSystem === 'sin-alta') return profile.activo === false;
+    return true;
   });
 
   return (
@@ -49,8 +61,20 @@ export default async function AuditorClientesPage({
           <p className="muted mt-2 text-sm">Busca por nombre, RUT, parcela o número de rol.</p>
         </div>
         <form className="w-full lg:max-w-md" method="get">
+          <input type="hidden" name="system" value={normalizedSystem} />
           <input className="input" defaultValue={q} name="q" placeholder="Buscar por nombre, RUT, parcela o número de rol" />
         </form>
+      </div>
+      <div className="mt-5 flex flex-wrap gap-2">
+        {SYSTEM_FILTERS.map((item) => (
+          <a
+            key={item.key}
+            className={`rounded-full border px-4 py-2 text-sm font-semibold ${normalizedSystem === item.key ? 'border-sky-300/40 bg-sky-400/15 text-sky-200' : 'border-white/10 bg-slate-900/45 text-slate-200'}`}
+            href={`/auditor/clientes?system=${item.key}${q ? `&q=${encodeURIComponent(q)}` : ''}`}
+          >
+            {item.label}
+          </a>
+        ))}
       </div>
 
       <div className="mt-5 overflow-x-auto hidden md:block">
@@ -78,11 +102,7 @@ export default async function AuditorClientesPage({
                   <td className="px-3 py-4 text-slate-200">{ficha?.numero_rol_parcela || '—'}</td>
                   <td className="px-3 py-4"><StatusBadge label={profile.activo ? 'activo' : 'inactivo'} /></td>
                   <td className="px-3 py-4 text-slate-200">{formatCurrency(saldoPendiente)}</td>
-                  <td className="px-3 py-4 text-right">
-                    <Link className="btn btn-secondary w-full lg:w-fit" href={`/auditor/clientes/${profile.id}`}>
-                      Ver ficha
-                    </Link>
-                  </td>
+                  <td className="px-3 py-4 text-right"><Link className="btn btn-secondary w-full lg:w-fit" href={`/auditor/clientes/${profile.id}`}>Ver ficha</Link></td>
                 </tr>
               );
             })}
@@ -107,16 +127,14 @@ export default async function AuditorClientesPage({
                 <StatusBadge label={profile.activo ? 'activo' : 'inactivo'} />
               </div>
               <div className="mt-3">
-                <Link className="btn btn-secondary w-full" href={`/auditor/clientes/${profile.id}`}>
-                  Ver ficha
-                </Link>
+                <Link className="btn btn-secondary w-full" href={`/auditor/clientes/${profile.id}`}>Ver ficha</Link>
               </div>
             </article>
           );
         })}
       </div>
 
-      {profiles.length === 0 ? <p className="muted mt-4 text-sm">No se encontraron clientes para esa búsqueda.</p> : null}
+      {profiles.length === 0 ? <p className="muted mt-4 text-sm">No se encontraron clientes para ese filtro.</p> : null}
     </section>
   );
 }

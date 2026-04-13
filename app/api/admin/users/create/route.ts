@@ -81,6 +81,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       ok: true,
+      userId: data.user?.id ?? null,
       credentials: {
         identificador,
         passwordTemporal,

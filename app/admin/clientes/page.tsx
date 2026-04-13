@@ -1,18 +1,25 @@
 import Link from 'next/link';
 
+import { ActivateSystemButton } from '@/components/admin/activate-system-button';
 import { StatusBadge } from '@/components/status-badge';
 import { matchesClientSearch, normalizeClientSearch } from '@/lib/client-search';
 import { formatCurrency, formatIdentifier } from '@/lib/format';
 import { requireRole } from '@/lib/auth';
 import { getPendingBalance } from '@/lib/payments';
 
+const SYSTEM_FILTERS = [
+  { key: 'todos', label: 'Todos' },
+  { key: 'con-acceso', label: 'Con acceso' },
+  { key: 'sin-alta', label: 'Sin alta sistema' }
+] as const;
+
 export default async function AdminClientesPage({
   searchParams
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; system?: string }>;
 }) {
   const { supabase } = await requireRole(['admin']);
-  const { q = '' } = await searchParams;
+  const { q = '', system = 'todos' } = await searchParams;
 
   const [{ data: profilesData }, { data: fichasData }, { data: cuotasData }] = await Promise.all([
     supabase.from('perfiles').select('*').eq('rol', 'cliente').order('created_at', { ascending: false }),
@@ -29,9 +36,10 @@ export default async function AdminClientesPage({
   }
 
   const query = normalizeClientSearch(q);
+  const normalizedSystem = SYSTEM_FILTERS.some((item) => item.key === system) ? system : 'todos';
   const profiles: any[] = (profilesData ?? []).filter((profile: any) => {
     const ficha = fichaMap.get(profile.id);
-    return matchesClientSearch(query, [
+    const matchesSearch = matchesClientSearch(query, [
       profile.nombre_completo,
       profile.rut,
       profile.identificador,
@@ -39,6 +47,11 @@ export default async function AdminClientesPage({
       ficha?.parcela,
       ficha?.numero_rol_parcela
     ]);
+
+    if (!matchesSearch) return false;
+    if (normalizedSystem === 'con-acceso') return profile.activo === true;
+    if (normalizedSystem === 'sin-alta') return profile.activo === false;
+    return true;
   });
 
   return (
@@ -50,15 +63,24 @@ export default async function AdminClientesPage({
         </div>
         <div className="flex w-full flex-col gap-3 lg:w-auto lg:flex-row">
           <form className="w-full lg:min-w-[360px]" method="get">
+            <input type="hidden" name="system" value={normalizedSystem} />
             <input className="input" defaultValue={q} name="q" placeholder="Buscar por nombre, RUT, parcela o número de rol" />
           </form>
-          <Link className="btn btn-secondary w-full lg:w-fit" href="/admin/usuarios">
-            Usuarios internos
-          </Link>
-          <Link className="btn btn-primary w-full lg:w-fit" href="/admin/usuarios/alta">
-            Alta de usuario
-          </Link>
+          <Link className="btn btn-secondary w-full lg:w-fit" href="/admin/usuarios">Usuarios internos</Link>
+          <Link className="btn btn-primary w-full lg:w-fit" href="/admin/usuarios/alta">Alta de usuario</Link>
         </div>
+      </div>
+
+      <div className="mt-5 flex flex-wrap gap-2">
+        {SYSTEM_FILTERS.map((item) => (
+          <a
+            key={item.key}
+            className={`rounded-full border px-4 py-2 text-sm font-semibold ${normalizedSystem === item.key ? 'border-amber-300/40 bg-amber-400/15 text-amber-200' : 'border-white/10 bg-slate-900/45 text-slate-200'}`}
+            href={`/admin/clientes?system=${item.key}${q ? `&q=${encodeURIComponent(q)}` : ''}`}
+          >
+            {item.label}
+          </a>
+        ))}
       </div>
 
       <div className="mt-5 overflow-x-auto hidden md:block">
@@ -87,9 +109,10 @@ export default async function AdminClientesPage({
                   <td className="px-3 py-4"><StatusBadge label={profile.activo ? 'activo' : 'inactivo'} /></td>
                   <td className="px-3 py-4 text-slate-200">{formatCurrency(saldoPendiente)}</td>
                   <td className="px-3 py-4 text-right">
-                    <Link className="btn btn-secondary w-full lg:w-fit" href={`/admin/clientes/${profile.id}`}>
-                      Ver / editar
-                    </Link>
+                    <div className="flex justify-end gap-2">
+                      <Link className="btn btn-secondary w-full lg:w-fit" href={`/admin/clientes/${profile.id}`}>Ver / editar</Link>
+                      {!profile.activo ? <ActivateSystemButton userId={profile.id} /> : null}
+                    </div>
                   </td>
                 </tr>
               );
@@ -114,17 +137,16 @@ export default async function AdminClientesPage({
                 </div>
                 <StatusBadge label={profile.activo ? 'activo' : 'inactivo'} />
               </div>
-              <div className="mt-3">
-                <Link className="btn btn-secondary w-full" href={`/admin/clientes/${profile.id}`}>
-                  Ver / editar
-                </Link>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <Link className="btn btn-secondary w-full" href={`/admin/clientes/${profile.id}`}>Ver / editar</Link>
+                {!profile.activo ? <ActivateSystemButton userId={profile.id} /> : null}
               </div>
             </article>
           );
         })}
       </div>
 
-      {profiles.length === 0 ? <p className="muted mt-4 text-sm">No se encontraron clientes para esa búsqueda.</p> : null}
+      {profiles.length === 0 ? <p className="muted mt-4 text-sm">No se encontraron clientes para ese filtro.</p> : null}
     </section>
   );
 }

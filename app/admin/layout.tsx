@@ -9,6 +9,8 @@ const links = [
   { href: '/admin/usuarios', label: 'Usuarios internos' },
   { href: '/admin/usuarios/alta', label: 'Alta de usuario' },
   { href: '/admin/pagos', label: 'Pagos' },
+  { href: '/admin/importar-base', label: 'Importar base' },
+  { href: '/admin/cuotas-masivas', label: 'Cuotas masivas' },
   { href: '/admin/solicitudes', label: 'Solicitudes' },
   { href: '/admin/avances', label: 'Avances' },
   { href: '/admin/configuracion', label: 'Configuración' }

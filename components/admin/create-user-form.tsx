@@ -1,5 +1,6 @@
 "use client";
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState, type FormEvent } from 'react';
 
@@ -29,6 +30,7 @@ export function CreateUserForm() {
   const [message, setMessage] = useState('');
   const [accessMessage, setAccessMessage] = useState('');
   const [copyMessage, setCopyMessage] = useState('');
+  const [createdUserId, setCreatedUserId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [role, setRole] = useState<'cliente' | 'auditor'>('cliente');
   const [identifier, setIdentifier] = useState('');
@@ -61,6 +63,7 @@ export function CreateUserForm() {
     setMessage('');
     setAccessMessage('');
     setCopyMessage('');
+    setCreatedUserId(null);
 
     try {
       const response = await fetch('/api/admin/users/create', {
@@ -85,6 +88,7 @@ export function CreateUserForm() {
         `Usuario creado. Ingresa con ${ingreso} · clave temporal: ${payload.credentials.passwordTemporal}. En el primer ingreso deberá cambiarla.`
       );
       setAccessMessage(buildAccessMessage(portalUrl, role, payload.credentials.identificador, payload.credentials.passwordTemporal));
+      setCreatedUserId(payload.userId ?? null);
       setIdentifier('');
       setName('');
       setParcel('');
@@ -162,6 +166,16 @@ export function CreateUserForm() {
           </div>
           <textarea className="textarea mt-3 min-h-[210px]" readOnly value={accessMessage} />
           {copyMessage ? <p className="mt-2 text-xs text-sky-300">{copyMessage}</p> : null}
+        </div>
+      ) : null}
+      {createdUserId && role === 'cliente' ? (
+        <div className="rounded-2xl border border-white/8 bg-slate-950/50 p-4">
+          <p className="text-sm font-semibold text-white">Siguiente paso</p>
+          <p className="muted mt-2 text-sm">Puedes completar la ficha y cargar pagos o cuotas del cliente recién creado.</p>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <Link className="btn btn-primary w-full sm:w-fit" href={`/admin/clientes/${createdUserId}`}>Abrir ficha del cliente</Link>
+            <Link className="btn btn-secondary w-full sm:w-fit" href="/admin/cuotas-masivas">Cuotas masivas</Link>
+          </div>
         </div>
       ) : null}
       {error ? <p className="break-words text-sm text-rose-300">{error}</p> : null}
