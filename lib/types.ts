@@ -259,6 +259,41 @@ export interface Database {
         };
         Update: Partial<Database['public']['Tables']['solicitud_mensajes']['Insert']>;
       };
+
+      solicitudes_acceso: {
+        Row: {
+          id: string;
+          rut: string;
+          parcela: string;
+          nombre_completo: string;
+          telefono: string;
+          email: string | null;
+          estado: 'pendiente' | 'aprobada' | 'rechazada';
+          observacion_admin: string | null;
+          perfil_id: string | null;
+          processed_by: string | null;
+          processed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          rut: string;
+          parcela: string;
+          nombre_completo: string;
+          telefono: string;
+          email?: string | null;
+          estado?: 'pendiente' | 'aprobada' | 'rechazada';
+          observacion_admin?: string | null;
+          perfil_id?: string | null;
+          processed_by?: string | null;
+          processed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['solicitudes_acceso']['Insert']>;
+      };
+
       audit_log: {
         Row: {
           id: string;
